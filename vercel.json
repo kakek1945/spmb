@@ -54,7 +54,11 @@
         "APP_SERVICES_CACHE": "/tmp/services.php",
         "VIEW_COMPILED_PATH": "/tmp",
         "SESSION_DRIVER": "cookie",
-        "CACHE_STORE": "array",
+        "CACHE_STORE": "file",
+        "CACHE_FILE_PATH": "/tmp/framework/cache/data",
+        "CACHE_LOCK_PATH": "/tmp/framework/cache/data",
+        "SPMB_CACHE_STORE": "file",
+        "SPMB_FALLBACK_CACHE_STORE": "file",
         "QUEUE_CONNECTION": "sync"
     }
 }
