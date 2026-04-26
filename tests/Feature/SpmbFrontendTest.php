@@ -163,6 +163,27 @@ class SpmbFrontendTest extends TestCase
             ->assertSee('8 / 15');
     }
 
+    public function test_capacity_update_falls_back_when_primary_cache_store_fails(): void
+    {
+        config([
+            'spmb.cache_store' => 'database',
+            'spmb.fallback_cache_store' => 'array',
+        ]);
+
+        $this->withSession(['admin_authenticated' => true, 'admin_email' => config('spmb.admin.email')])->post('/admin/kapasitas', [
+            'paths' => [
+                'DOM' => [
+                    'capacity' => 18,
+                    'is_active' => '1',
+                    'close_when_full' => '1',
+                ],
+            ],
+        ])->assertRedirect('/admin/kapasitas');
+
+        $this->withSession(['admin_authenticated' => true, 'admin_email' => config('spmb.admin.email')])->get('/admin/kapasitas')
+            ->assertSee('value="18"', false);
+    }
+
     public function test_admin_can_create_update_and_delete_registrant(): void
     {
         $session = ['admin_authenticated' => true, 'admin_email' => config('spmb.admin.email')];

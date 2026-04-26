@@ -3,10 +3,12 @@
 namespace App\Services;
 
 use Carbon\Carbon;
+use Illuminate\Contracts\Cache\Repository as CacheRepository;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
+use Throwable;
 
 class DemoSpmbRepository
 {
@@ -72,19 +74,19 @@ class DemoSpmbRepository
             return;
         }
 
-        $overrides = Cache::get($this->pathSettingsCacheKey, []);
+        $overrides = $this->cacheGet($this->pathSettingsCacheKey, []);
         $overrides[$code] = [
             'capacity' => (int) $settings['capacity'],
             'is_active' => (bool) $settings['is_active'],
             'close_when_full' => (bool) $settings['close_when_full'],
         ];
 
-        Cache::forever($this->pathSettingsCacheKey, $overrides);
+        $this->cacheForever($this->pathSettingsCacheKey, $overrides);
     }
 
     public function adminCredentials(): array
     {
-        $credentials = Cache::get($this->adminCredentialsCacheKey);
+        $credentials = $this->cacheGet($this->adminCredentialsCacheKey);
 
         if (! is_array($credentials)) {
             $credentials = [
@@ -92,7 +94,7 @@ class DemoSpmbRepository
                 'password_hash' => Hash::make(config('spmb.admin.password')),
             ];
 
-            Cache::forever($this->adminCredentialsCacheKey, $credentials);
+            $this->cacheForever($this->adminCredentialsCacheKey, $credentials);
         }
 
         return $credentials;
@@ -111,7 +113,7 @@ class DemoSpmbRepository
         $credentials = $this->adminCredentials();
         $credentials['password_hash'] = Hash::make($password);
 
-        Cache::forever($this->adminCredentialsCacheKey, $credentials);
+        $this->cacheForever($this->adminCredentialsCacheKey, $credentials);
     }
 
     public function dashboardStats(): array
@@ -271,7 +273,7 @@ class DemoSpmbRepository
         ]);
 
         $registrations->put($index, $updated);
-        Cache::forever($this->registrationsCacheKey, $registrations->values()->all());
+        $this->cacheForever($this->registrationsCacheKey, $registrations->values()->all());
 
         return $this->decorateRegistration($updated);
     }
@@ -282,7 +284,7 @@ class DemoSpmbRepository
             ->reject(fn (array $registration) => (string) $registration['id'] === (string) $id)
             ->values();
 
-        Cache::forever($this->registrationsCacheKey, $registrations->all());
+        $this->cacheForever($this->registrationsCacheKey, $registrations->all());
     }
 
     public function pathOptions(): array
@@ -771,7 +773,7 @@ class DemoSpmbRepository
 
     protected function pathDefinitions(): Collection
     {
-        $overrides = Cache::get($this->pathSettingsCacheKey, []);
+        $overrides = $this->cacheGet($this->pathSettingsCacheKey, []);
 
         return collect(config('spmb.paths', []))
             ->map(function (array $path, string $code) use ($overrides) {
@@ -787,13 +789,13 @@ class DemoSpmbRepository
 
     protected function registrationsRaw(): Collection
     {
-        $registrations = Cache::get($this->registrationsCacheKey);
+        $registrations = $this->cacheGet($this->registrationsCacheKey);
 
         if (! is_array($registrations)) {
             $registrations = $this->shouldSeedSampleData()
                 ? $this->seedRegistrations()->values()->all()
                 : [];
-            Cache::forever($this->registrationsCacheKey, $registrations);
+            $this->cacheForever($this->registrationsCacheKey, $registrations);
         }
 
         return collect($registrations);
@@ -825,7 +827,7 @@ class DemoSpmbRepository
         }
 
         $registrations->push($record);
-        Cache::forever($this->registrationsCacheKey, $registrations->values()->all());
+        $this->cacheForever($this->registrationsCacheKey, $registrations->values()->all());
 
         return $this->decorateRegistration($record);
     }
@@ -858,5 +860,51 @@ class DemoSpmbRepository
     protected function shouldSeedSampleData(): bool
     {
         return app()->environment('testing') || (bool) config('spmb.seed_sample_data', false);
+    }
+
+    protected function cacheGet(string $key, mixed $default = null): mixed
+    {
+        foreach ($this->cacheStores() as $store) {
+            try {
+                return $store->get($key, $default);
+            } catch (Throwable) {
+                continue;
+            }
+        }
+
+        return $default;
+    }
+
+    protected function cacheForever(string $key, mixed $value): void
+    {
+        foreach ($this->cacheStores() as $store) {
+            try {
+                $store->forever($key, $value);
+                return;
+            } catch (Throwable) {
+                continue;
+            }
+        }
+    }
+
+    /**
+     * @return array<int, CacheRepository>
+     */
+    protected function cacheStores(): array
+    {
+        $stores = [];
+
+        foreach (array_unique([
+            (string) config('spmb.cache_store', config('cache.default')),
+            (string) config('spmb.fallback_cache_store', 'file'),
+        ]) as $storeName) {
+            try {
+                $stores[] = Cache::store($storeName);
+            } catch (Throwable) {
+                continue;
+            }
+        }
+
+        return $stores;
     }
 }

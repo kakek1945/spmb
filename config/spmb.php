@@ -4,6 +4,8 @@ return [
     'app_name' => 'SPMB SMP Negeri 1 Merbau',
     'tagline' => 'Prapendaftaran murid baru SMP Negeri 1 Merbau.',
     'support_text' => 'Layanan prapendaftaran murid baru SMP Negeri 1 Merbau.',
+    'cache_store' => env('SPMB_CACHE_STORE', env('CACHE_STORE', 'file')),
+    'fallback_cache_store' => env('SPMB_FALLBACK_CACHE_STORE', 'file'),
     'school' => [
         'name' => 'SMP Negeri 1 Merbau',
         'info' => 'Layanan prapendaftaran murid baru',
