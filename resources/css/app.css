@@ -122,28 +122,34 @@
         @apply text-slate-200 hover:bg-white/8 hover:text-white;
     }
 
+    [data-print-sheet] {
+        display: none;
+    }
+
     .success-print-card {
         width: min(100%, 520px);
         aspect-ratio: 1.586;
-        border-radius: 1.5rem;
-        background:
-            radial-gradient(circle at top right, rgba(181, 139, 59, 0.42), transparent 34%),
-            linear-gradient(140deg, #10233d 0%, #103b73 52%, #0f766e 100%);
-        box-shadow:
-            0 24px 50px rgba(15, 35, 61, 0.18),
-            inset 0 1px 0 rgba(255, 255, 255, 0.16);
+        border-radius: 1.15rem;
+        border: 1px solid rgba(15, 35, 61, 0.14);
+        background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+        color: #10233d;
+        box-shadow: 0 18px 40px rgba(15, 35, 61, 0.12);
+        overflow: hidden;
+    }
+
+    .success-print-card--preview {
+        min-width: 360px;
     }
 
     .success-print-card__body {
-        display: flex;
+        display: grid;
+        grid-template-rows: auto auto 1fr auto;
         height: 100%;
-        flex-direction: column;
-        justify-content: space-between;
-        gap: 1rem;
-        padding: 1.2rem;
+        gap: 0.85rem;
+        padding: 1.1rem;
     }
 
-    .success-print-card__top {
+    .success-print-card__header {
         display: flex;
         align-items: flex-start;
         justify-content: space-between;
@@ -154,106 +160,128 @@
         display: flex;
         min-width: 0;
         align-items: center;
-        gap: 0.75rem;
+        gap: 0.7rem;
     }
 
     .success-print-card__logo-wrap {
         display: flex;
-        height: 2.8rem;
-        width: 2.8rem;
+        width: 2.45rem;
+        height: 2.45rem;
         flex-shrink: 0;
         align-items: center;
         justify-content: center;
-        border-radius: 0.95rem;
-        background: rgba(255, 255, 255, 0.94);
-        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+        border-radius: 0.9rem;
+        background: #ffffff;
+        border: 1px solid rgba(15, 35, 61, 0.1);
     }
 
     .success-print-card__logo {
-        height: 2rem;
-        width: 2rem;
+        width: 1.75rem;
+        height: 1.75rem;
         object-fit: contain;
     }
 
     .success-print-card__eyebrow {
-        color: rgba(226, 232, 240, 0.92);
-        font-size: 0.58rem;
-        font-weight: 700;
-        letter-spacing: 0.22em;
+        font-size: 0.55rem;
+        font-weight: 800;
+        letter-spacing: 0.18em;
         text-transform: uppercase;
+        color: #0f766e;
     }
 
     .success-print-card__school {
-        margin-top: 0.2rem;
-        font-family: var(--font-display);
-        font-size: 1rem;
-        font-weight: 700;
+        margin-top: 0.18rem;
+        font-size: 0.92rem;
+        font-weight: 800;
         line-height: 1.15;
+        color: #10233d;
+    }
+
+    .success-print-card__meta {
+        margin-top: 0.14rem;
+        font-size: 0.62rem;
+        line-height: 1.25;
+        color: #475569;
+    }
+
+    .success-print-card__status {
+        flex-shrink: 0;
+        border-radius: 9999px;
+        border: 1px solid rgba(15, 118, 110, 0.18);
+        background: #ecfdf5;
+        padding: 0.34rem 0.62rem;
+        font-size: 0.58rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #047857;
+        text-align: center;
+    }
+
+    .success-print-card__number-box {
+        border-radius: 0.95rem;
+        border: 1px solid rgba(16, 59, 115, 0.12);
+        background: linear-gradient(180deg, #103b73 0%, #102f5c 100%);
+        padding: 0.72rem 0.82rem;
         color: white;
     }
 
-    .success-print-card__badge {
-        flex-shrink: 0;
-        border-radius: 9999px;
-        background: rgba(255, 255, 255, 0.15);
-        padding: 0.38rem 0.7rem;
-        font-size: 0.62rem;
-        font-weight: 700;
-        letter-spacing: 0.12em;
-        text-transform: uppercase;
-        color: #ccfbf1;
-        backdrop-filter: blur(6px);
-    }
-
-    .success-print-card__main {
-        display: flex;
-        flex: 1;
-        flex-direction: column;
-        justify-content: center;
-        gap: 0.9rem;
-    }
-
     .success-print-card__label {
-        color: rgba(226, 232, 240, 0.88);
-        font-size: 0.56rem;
-        font-weight: 700;
-        letter-spacing: 0.18em;
+        font-size: 0.54rem;
+        font-weight: 800;
+        letter-spacing: 0.16em;
         text-transform: uppercase;
+        color: rgba(255, 255, 255, 0.74);
+    }
+
+    .success-print-card__item .success-print-card__label {
+        color: #64748b;
     }
 
     .success-print-card__number {
-        margin-top: 0.28rem;
-        font-size: 1.2rem;
+        margin-top: 0.22rem;
+        font-size: 1.08rem;
         font-weight: 800;
-        letter-spacing: 0.04em;
+        letter-spacing: 0.08em;
+        line-height: 1.1;
         color: white;
     }
 
     .success-print-card__grid {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 0.7rem 1rem;
+        gap: 0.65rem 0.8rem;
+    }
+
+    .success-print-card__item {
+        min-width: 0;
+        border-radius: 0.8rem;
+        background: #f8fafc;
+        padding: 0.6rem 0.7rem;
+    }
+
+    .success-print-card__item--wide {
+        grid-column: 1 / -1;
     }
 
     .success-print-card__value {
         margin-top: 0.16rem;
-        font-size: 0.76rem;
-        font-weight: 600;
-        line-height: 1.3;
-        color: white;
+        font-size: 0.74rem;
+        font-weight: 700;
+        line-height: 1.25;
+        color: #0f172a;
         word-break: break-word;
     }
 
     .success-print-card__footer {
         display: flex;
         justify-content: space-between;
-        gap: 0.75rem;
-        border-top: 1px solid rgba(255, 255, 255, 0.16);
-        padding-top: 0.72rem;
+        gap: 0.7rem;
+        padding-top: 0.2rem;
         font-size: 0.58rem;
-        font-weight: 500;
-        line-height: 1.35;
-        color: rgba(226, 232, 240, 0.88);
+        font-weight: 700;
+        line-height: 1.25;
+        color: #475569;
     }
 }
 
@@ -280,77 +308,99 @@
         display: none !important;
     }
 
-    main,
-    [data-success-shell] {
+    main {
+        width: 85.6mm !important;
+        height: 54mm !important;
         margin: 0 !important;
         padding: 0 !important;
-        max-width: none !important;
     }
 
-    [data-success-shell] > div {
+    main > * {
         display: none !important;
     }
 
+    [data-print-sheet] {
+        display: flex !important;
+        width: 85.6mm !important;
+        height: 54mm !important;
+        align-items: stretch;
+        justify-content: stretch;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+
     [data-print-card] {
-        display: block !important;
         width: 85.6mm !important;
         height: 54mm !important;
         margin: 0 !important;
         border-radius: 0 !important;
         box-shadow: none !important;
+        border: none !important;
         page-break-inside: avoid;
         break-inside: avoid;
     }
 
     .success-print-card__body {
-        gap: 2.6mm;
-        padding: 4.4mm 4.6mm;
+        gap: 2.1mm;
+        padding: 3.8mm 4mm;
     }
 
     .success-print-card__logo-wrap {
-        width: 11mm;
-        height: 11mm;
-        border-radius: 3mm;
+        width: 9.8mm;
+        height: 9.8mm;
+        border-radius: 2.6mm;
     }
 
     .success-print-card__logo {
-        width: 8mm;
-        height: 8mm;
+        width: 7mm;
+        height: 7mm;
     }
 
     .success-print-card__eyebrow {
-        font-size: 2.15mm;
+        font-size: 1.9mm;
     }
 
     .success-print-card__school {
-        font-size: 4mm;
+        font-size: 3.25mm;
     }
 
-    .success-print-card__badge {
-        padding: 1.1mm 2.2mm;
-        font-size: 2.15mm;
+    .success-print-card__meta {
+        font-size: 1.95mm;
     }
 
-    .success-print-card__label {
-        font-size: 2mm;
+    .success-print-card__status {
+        padding: 1mm 1.8mm;
+        font-size: 1.9mm;
+    }
+
+    .success-print-card__number-box {
+        padding: 2.2mm 2.6mm;
     }
 
     .success-print-card__number {
-        font-size: 4.55mm;
-        margin-top: 0.7mm;
+        font-size: 3.7mm;
+        margin-top: 0.5mm;
+    }
+
+    .success-print-card__label {
+        font-size: 1.75mm;
     }
 
     .success-print-card__grid {
-        gap: 2mm 3.2mm;
+        gap: 1.8mm 2mm;
+    }
+
+    .success-print-card__item {
+        padding: 1.8mm 2mm;
     }
 
     .success-print-card__value {
-        margin-top: 0.6mm;
-        font-size: 2.55mm;
+        margin-top: 0.45mm;
+        font-size: 2.2mm;
     }
 
     .success-print-card__footer {
-        padding-top: 2.2mm;
-        font-size: 2mm;
+        font-size: 1.85mm;
+        padding-top: 0;
     }
 }
