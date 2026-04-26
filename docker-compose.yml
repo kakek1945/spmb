@@ -1,0 +1,9 @@
+services:
+  spmb-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: spmb-app
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
