@@ -2,11 +2,14 @@
 
 namespace Tests\Feature;
 
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Tests\TestCase;
 
 class SpmbFrontendTest extends TestCase
 {
+    use RefreshDatabase;
+
     protected string $pathSettingsCacheKey = 'spmb.path_settings';
     protected string $registrationsCacheKey = 'spmb.registrations';
     protected string $adminCredentialsCacheKey = 'spmb.admin_credentials';
@@ -93,6 +96,9 @@ class SpmbFrontendTest extends TestCase
         $this->followRedirects($response)
             ->assertSee('Nomor pendaftaran')
             ->assertSee('Valid Prapendaftaran')
+            ->assertSee('Calon Murid Demo');
+
+        $this->withSession(['admin_authenticated' => true, 'admin_email' => config('spmb.admin.email')])->get('/admin/pendaftar')
             ->assertSee('Calon Murid Demo');
     }
 

@@ -2,12 +2,15 @@
 
 namespace App\Services;
 
+use App\Models\PathSetting;
+use App\Models\Registration;
 use Carbon\Carbon;
 use Illuminate\Contracts\Cache\Repository as CacheRepository;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Schema;
 use Throwable;
 
 class DemoSpmbRepository
@@ -15,6 +18,9 @@ class DemoSpmbRepository
     protected string $pathSettingsCacheKey = 'spmb.path_settings';
     protected string $registrationsCacheKey = 'spmb.registrations';
     protected string $adminCredentialsCacheKey = 'spmb.admin_credentials';
+    protected ?bool $databaseAvailable = null;
+    protected bool $pathSettingsBootstrapped = false;
+    protected bool $registrationsBootstrapped = false;
 
     public function branding(): array
     {
@@ -71,6 +77,21 @@ class DemoSpmbRepository
         $paths = $this->pathDefinitions();
 
         if (! $paths->has($code)) {
+            return;
+        }
+
+        if ($this->usingDatabase()) {
+            $this->bootstrapPathSettings();
+
+            PathSetting::query()->updateOrCreate(
+                ['code' => $code],
+                [
+                    'capacity' => (int) $settings['capacity'],
+                    'is_active' => (bool) $settings['is_active'],
+                    'close_when_full' => (bool) $settings['close_when_full'],
+                ]
+            );
+
             return;
         }
 
@@ -244,6 +265,39 @@ class DemoSpmbRepository
 
     public function updateRegistration(string|int $id, array $validated): ?array
     {
+        if ($this->usingDatabase()) {
+            $this->bootstrapRegistrations();
+
+            $registration = Registration::query()->find($id);
+
+            if (! $registration) {
+                return null;
+            }
+
+            $registration->fill([
+                'path_code' => $validated['path_code'],
+                'full_name' => $validated['full_name'],
+                'nisn' => $validated['nisn'] ?? null,
+                'nik' => $validated['nik'] ?? null,
+                'birth_place' => $validated['birth_place'],
+                'birth_date' => $validated['birth_date'],
+                'gender' => $validated['gender'],
+                'address' => $validated['address'],
+                'village' => $validated['village'] ?? null,
+                'district' => $validated['district'] ?? null,
+                'previous_school' => $validated['previous_school'],
+                'parent_name' => $validated['parent_name'],
+                'parent_phone' => $validated['parent_phone'],
+                'email' => $validated['email'] ?? null,
+                'status' => $validated['status'],
+                'admin_note' => $validated['admin_note'] ?? '',
+                'special_data' => $this->buildSpecialData($validated),
+            ]);
+            $registration->save();
+
+            return $this->decorateRegistration($this->registrationModelToArray($registration->fresh()));
+        }
+
         $registrations = $this->registrationsRaw();
         $index = $registrations->search(fn (array $registration) => (string) $registration['id'] === (string) $id);
 
@@ -280,6 +334,13 @@ class DemoSpmbRepository
 
     public function deleteRegistration(string|int $id): void
     {
+        if ($this->usingDatabase()) {
+            $this->bootstrapRegistrations();
+            Registration::query()->whereKey($id)->delete();
+
+            return;
+        }
+
         $registrations = $this->registrationsRaw()
             ->reject(fn (array $registration) => (string) $registration['id'] === (string) $id)
             ->values();
@@ -294,6 +355,12 @@ class DemoSpmbRepository
 
     public function registrationExistsByNisn(string $nisn): bool
     {
+        if ($this->usingDatabase()) {
+            $this->bootstrapRegistrations();
+
+            return Registration::query()->where('nisn', $nisn)->exists();
+        }
+
         return $this->registrations()->contains(
             fn (array $registration) => (string) $registration['nisn'] === $nisn
         );
@@ -301,6 +368,15 @@ class DemoSpmbRepository
 
     public function registrationExistsByNisnExcept(string $nisn, string|int|null $exceptId = null): bool
     {
+        if ($this->usingDatabase()) {
+            $this->bootstrapRegistrations();
+
+            return Registration::query()
+                ->where('nisn', $nisn)
+                ->when($exceptId !== null, fn ($query) => $query->whereKeyNot($exceptId))
+                ->exists();
+        }
+
         return $this->registrations()->contains(function (array $registration) use ($nisn, $exceptId) {
             if ((string) $registration['nisn'] !== $nisn) {
                 return false;
@@ -773,6 +849,25 @@ class DemoSpmbRepository
 
     protected function pathDefinitions(): Collection
     {
+        if ($this->usingDatabase()) {
+            $this->bootstrapPathSettings();
+
+            return collect(config('spmb.paths', []))
+                ->map(function (array $path, string $code) {
+                    $record = PathSetting::query()->where('code', $code)->first();
+
+                    if (! $record) {
+                        return $path;
+                    }
+
+                    return array_merge($path, [
+                        'capacity' => $record->capacity,
+                        'is_active' => $record->is_active,
+                        'close_when_full' => $record->close_when_full,
+                    ]);
+                });
+        }
+
         $overrides = $this->cacheGet($this->pathSettingsCacheKey, []);
 
         return collect(config('spmb.paths', []))
@@ -789,6 +884,15 @@ class DemoSpmbRepository
 
     protected function registrationsRaw(): Collection
     {
+        if ($this->usingDatabase()) {
+            $this->bootstrapRegistrations();
+
+            return Registration::query()
+                ->orderBy('id')
+                ->get()
+                ->map(fn (Registration $registration) => $this->registrationModelToArray($registration));
+        }
+
         $registrations = $this->cacheGet($this->registrationsCacheKey);
 
         if (! is_array($registrations)) {
@@ -809,6 +913,39 @@ class DemoSpmbRepository
 
     protected function storeRegistration(array $attributes, bool $respectProvidedStatus = false): array
     {
+        if ($this->usingDatabase()) {
+            $this->bootstrapRegistrations();
+
+            $submittedAt = isset($attributes['submitted_at'])
+                ? Carbon::parse($attributes['submitted_at'])
+                : Carbon::now();
+
+            $record = new Registration([
+                'registration_number' => $this->nextRegistrationNumber($attributes['path_code']),
+                'path_code' => $attributes['path_code'],
+                'full_name' => $attributes['full_name'],
+                'nisn' => $attributes['nisn'] ?? null,
+                'nik' => $attributes['nik'] ?? null,
+                'birth_place' => $attributes['birth_place'],
+                'birth_date' => $attributes['birth_date'],
+                'gender' => $attributes['gender'],
+                'address' => $attributes['address'],
+                'village' => $attributes['village'] ?? null,
+                'district' => $attributes['district'] ?? null,
+                'previous_school' => $attributes['previous_school'],
+                'parent_name' => $attributes['parent_name'],
+                'parent_phone' => $attributes['parent_phone'],
+                'email' => $attributes['email'] ?? null,
+                'status' => $respectProvidedStatus ? ($attributes['status'] ?? 'valid') : 'valid',
+                'admin_note' => $attributes['admin_note'] ?? 'Pendaftaran langsung ditandai valid.',
+                'submitted_at' => $submittedAt,
+                'special_data' => $attributes['special_data'] ?? [],
+            ]);
+            $record->save();
+
+            return $this->decorateRegistration($this->registrationModelToArray($record->fresh()));
+        }
+
         $registrations = $this->registrationsRaw();
         $submittedAt = Carbon::now();
         $nextId = ((int) $registrations->max('id')) + 1;
@@ -860,6 +997,125 @@ class DemoSpmbRepository
     protected function shouldSeedSampleData(): bool
     {
         return app()->environment('testing') || (bool) config('spmb.seed_sample_data', false);
+    }
+
+    protected function usingDatabase(): bool
+    {
+        if ($this->databaseAvailable !== null) {
+            return $this->databaseAvailable;
+        }
+
+        try {
+            return $this->databaseAvailable = Schema::hasTable('path_settings')
+                && Schema::hasTable('registrations');
+        } catch (Throwable) {
+            return $this->databaseAvailable = false;
+        }
+    }
+
+    protected function bootstrapPathSettings(): void
+    {
+        if ($this->pathSettingsBootstrapped || ! $this->usingDatabase()) {
+            return;
+        }
+
+        $this->pathSettingsBootstrapped = true;
+
+        foreach ($this->defaultPathSettings() as $code => $path) {
+            PathSetting::query()->firstOrCreate(
+                ['code' => $code],
+                [
+                    'capacity' => $path['capacity'],
+                    'is_active' => $path['is_active'],
+                    'close_when_full' => $path['close_when_full'],
+                ]
+            );
+        }
+    }
+
+    protected function bootstrapRegistrations(): void
+    {
+        if ($this->registrationsBootstrapped || ! $this->usingDatabase()) {
+            return;
+        }
+
+        $this->registrationsBootstrapped = true;
+        $this->bootstrapPathSettings();
+
+        if (Registration::query()->exists() || ! $this->shouldSeedSampleData()) {
+            return;
+        }
+
+        $this->seedRegistrations()->each(function (array $registration) {
+            Registration::query()->create([
+                'registration_number' => $registration['registration_number'],
+                'path_code' => $registration['path_code'],
+                'full_name' => $registration['full_name'],
+                'nisn' => $registration['nisn'],
+                'nik' => $registration['nik'],
+                'birth_place' => $registration['birth_place'],
+                'birth_date' => $registration['birth_date'],
+                'gender' => $registration['gender'],
+                'address' => $registration['address'],
+                'village' => $registration['village'],
+                'district' => $registration['district'],
+                'previous_school' => $registration['previous_school'],
+                'parent_name' => $registration['parent_name'],
+                'parent_phone' => $registration['parent_phone'],
+                'email' => $registration['email'],
+                'status' => $registration['status'],
+                'admin_note' => $registration['admin_note'],
+                'submitted_at' => $registration['submitted_at'],
+                'special_data' => $registration['special_data'] ?? [],
+            ]);
+        });
+    }
+
+    protected function defaultPathSettings(): Collection
+    {
+        return collect(config('spmb.paths', []));
+    }
+
+    protected function registrationModelToArray(Registration $registration): array
+    {
+        return [
+            'id' => $registration->id,
+            'registration_number' => $registration->registration_number,
+            'path_code' => $registration->path_code,
+            'full_name' => $registration->full_name,
+            'nisn' => $registration->nisn,
+            'nik' => $registration->nik,
+            'birth_place' => $registration->birth_place,
+            'birth_date' => $registration->birth_date?->format('Y-m-d') ?? $registration->getRawOriginal('birth_date'),
+            'gender' => $registration->gender,
+            'address' => $registration->address,
+            'village' => $registration->village,
+            'district' => $registration->district,
+            'previous_school' => $registration->previous_school,
+            'parent_name' => $registration->parent_name,
+            'parent_phone' => $registration->parent_phone,
+            'email' => $registration->email,
+            'status' => $registration->status,
+            'admin_note' => $registration->admin_note,
+            'submitted_at' => $registration->submitted_at?->format('Y-m-d H:i:s') ?? $registration->getRawOriginal('submitted_at'),
+            'special_data' => $registration->special_data ?? [],
+        ];
+    }
+
+    protected function nextRegistrationNumber(string $pathCode): string
+    {
+        $year = $this->branding()['year'];
+        $nextSequence = Registration::query()
+            ->where('path_code', $pathCode)
+            ->get(['registration_number'])
+            ->map(function (Registration $registration) {
+                $parts = explode('-', $registration->registration_number);
+
+                return (int) end($parts);
+            })
+            ->max() + 1;
+
+        return sprintf('SPMB-%s-%s-%s', $year, $pathCode, str_pad((string) $nextSequence, 4, '0', STR_PAD_LEFT));
     }
 
     protected function cacheGet(string $key, mixed $default = null): mixed
