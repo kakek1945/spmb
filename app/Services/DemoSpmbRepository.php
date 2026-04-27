@@ -21,6 +21,9 @@ class DemoSpmbRepository
     protected ?bool $databaseAvailable = null;
     protected bool $pathSettingsBootstrapped = false;
     protected bool $registrationsBootstrapped = false;
+    protected ?Collection $pathDefinitionsSnapshot = null;
+    protected ?Collection $registrationsRawSnapshot = null;
+    protected ?Collection $registrationsSnapshot = null;
 
     public function branding(): array
     {
@@ -91,6 +94,8 @@ class DemoSpmbRepository
                     'close_when_full' => (bool) $settings['close_when_full'],
                 ]
             );
+
+            $this->flushSnapshots();
 
             return;
         }
@@ -295,6 +300,8 @@ class DemoSpmbRepository
             ]);
             $registration->save();
 
+            $this->flushSnapshots();
+
             return $this->decorateRegistration($this->registrationModelToArray($registration->fresh()));
         }
 
@@ -337,6 +344,7 @@ class DemoSpmbRepository
         if ($this->usingDatabase()) {
             $this->bootstrapRegistrations();
             Registration::query()->whereKey($id)->delete();
+            $this->flushSnapshots();
 
             return;
         }
@@ -852,9 +860,15 @@ class DemoSpmbRepository
         if ($this->usingDatabase()) {
             $this->bootstrapPathSettings();
 
-            return collect(config('spmb.paths', []))
-                ->map(function (array $path, string $code) {
-                    $record = PathSetting::query()->where('code', $code)->first();
+            if ($this->pathDefinitionsSnapshot instanceof Collection) {
+                return $this->pathDefinitionsSnapshot;
+            }
+
+            $records = PathSetting::query()->get()->keyBy('code');
+
+            return $this->pathDefinitionsSnapshot = collect(config('spmb.paths', []))
+                ->map(function (array $path, string $code) use ($records) {
+                    $record = $records->get($code);
 
                     if (! $record) {
                         return $path;
@@ -887,7 +901,11 @@ class DemoSpmbRepository
         if ($this->usingDatabase()) {
             $this->bootstrapRegistrations();
 
-            return Registration::query()
+            if ($this->registrationsRawSnapshot instanceof Collection) {
+                return $this->registrationsRawSnapshot;
+            }
+
+            return $this->registrationsRawSnapshot = Registration::query()
                 ->orderBy('id')
                 ->get()
                 ->map(fn (Registration $registration) => $this->registrationModelToArray($registration));
@@ -907,7 +925,11 @@ class DemoSpmbRepository
 
     protected function registrations(): Collection
     {
-        return $this->registrationsRaw()
+        if ($this->registrationsSnapshot instanceof Collection) {
+            return $this->registrationsSnapshot;
+        }
+
+        return $this->registrationsSnapshot = $this->registrationsRaw()
             ->map(fn (array $registration) => $this->decorateRegistration($registration));
     }
 
@@ -942,6 +964,8 @@ class DemoSpmbRepository
                 'special_data' => $attributes['special_data'] ?? [],
             ]);
             $record->save();
+
+            $this->flushSnapshots();
 
             return $this->decorateRegistration($this->registrationModelToArray($record->fresh()));
         }
@@ -1020,16 +1044,16 @@ class DemoSpmbRepository
         }
 
         $this->pathSettingsBootstrapped = true;
+        $defaults = $this->defaultPathSettings();
+        $existingCodes = PathSetting::query()->pluck('code')->all();
 
-        foreach ($this->defaultPathSettings() as $code => $path) {
-            PathSetting::query()->firstOrCreate(
-                ['code' => $code],
-                [
-                    'capacity' => $path['capacity'],
-                    'is_active' => $path['is_active'],
-                    'close_when_full' => $path['close_when_full'],
-                ]
-            );
+        foreach ($defaults->except($existingCodes) as $code => $path) {
+            PathSetting::query()->create([
+                'code' => $code,
+                'capacity' => $path['capacity'],
+                'is_active' => $path['is_active'],
+                'close_when_full' => $path['close_when_full'],
+            ]);
         }
     }
 
@@ -1074,6 +1098,13 @@ class DemoSpmbRepository
     protected function defaultPathSettings(): Collection
     {
         return collect(config('spmb.paths', []));
+    }
+
+    protected function flushSnapshots(): void
+    {
+        $this->pathDefinitionsSnapshot = null;
+        $this->registrationsRawSnapshot = null;
+        $this->registrationsSnapshot = null;
     }
 
     protected function registrationModelToArray(Registration $registration): array
