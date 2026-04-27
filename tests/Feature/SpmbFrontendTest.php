@@ -24,6 +24,7 @@ class SpmbFrontendTest extends TestCase
     {
         $this->get('/')->assertOk();
         $this->get('/daftar')->assertOk();
+        $this->get('/daftar/cetak/SPMB-2026-DOM-0001')->assertOk();
         $this->get('/daftar/sukses/SPMB-2026-DOM-0001')->assertOk();
         $this->get('/admin/login')->assertOk();
         $this->withSession(['admin_authenticated' => true, 'admin_email' => config('spmb.admin.email')])->get('/admin')->assertOk();

@@ -14,6 +14,8 @@ Route::get('/', HomeController::class)->name('home');
 
 Route::get('/daftar', [RegistrationController::class, 'create'])->name('registration.create');
 Route::post('/daftar', [RegistrationController::class, 'store'])->name('registration.store');
+Route::get('/daftar/cetak/{registrationNumber}', [RegistrationController::class, 'print'])
+    ->name('registration.print');
 Route::get('/daftar/sukses/{registrationNumber}', [RegistrationController::class, 'success'])
     ->name('registration.success');
 

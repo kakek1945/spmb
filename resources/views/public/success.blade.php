@@ -43,7 +43,7 @@
                     <p class="mt-3 text-sm leading-7 text-slate-300">Simpan atau cetak nomor ini untuk arsip pendaftar.</p>
                 </div>
                 <div class="flex flex-col gap-3 sm:flex-row">
-                    <button type="button" class="rounded-full bg-white px-5 py-3 text-sm font-semibold text-slate-950" data-print-page>Cetak Nomor</button>
+                    <a href="{{ route('registration.print', $registration['registration_number']) }}" target="_blank" rel="noopener noreferrer" class="rounded-full bg-white px-5 py-3 text-center text-sm font-semibold text-slate-950">Cetak Nomor</a>
                     <a href="{{ route('registration.create') }}" class="rounded-full border border-white/15 px-5 py-3 text-sm font-semibold text-white">Daftar Lagi</a>
                 </div>
             </div>
@@ -105,48 +105,4 @@
         </div>
     </section>
 
-    <section data-print-sheet>
-        <article data-print-card class="success-print-card">
-            <div class="success-print-card__body">
-                <div class="success-print-card__header">
-                    <div class="success-print-card__brand">
-                        <div class="success-print-card__logo-wrap">
-                            <img src="{{ config('spmb.school.logo_url') }}" alt="Logo {{ config('spmb.school.name') }}" class="success-print-card__logo" referrerpolicy="no-referrer">
-                        </div>
-                        <div class="min-w-0">
-                            <p class="success-print-card__eyebrow">Kartu Bukti Pendaftaran</p>
-                            <p class="success-print-card__school">{{ config('spmb.school.name') }}</p>
-                            <p class="success-print-card__meta">{{ config('spmb.school.info') }}</p>
-                        </div>
-                    </div>
-                    <div class="success-print-card__status">{{ $registration['status_label'] }}</div>
-                </div>
-
-                <div class="success-print-card__number-box">
-                    <p class="success-print-card__label">Nomor Pendaftaran</p>
-                    <p class="success-print-card__number">{{ $registration['registration_number'] }}</p>
-                </div>
-
-                <div class="success-print-card__grid">
-                    <div class="success-print-card__item success-print-card__item--wide">
-                        <p class="success-print-card__label">Nama Pendaftar</p>
-                        <p class="success-print-card__value">{{ $registration['full_name'] }}</p>
-                    </div>
-                    <div class="success-print-card__item">
-                        <p class="success-print-card__label">Jalur</p>
-                        <p class="success-print-card__value">{{ $registration['path_name'] }}</p>
-                    </div>
-                    <div class="success-print-card__item">
-                        <p class="success-print-card__label">Tanggal</p>
-                        <p class="success-print-card__value">{{ $registration['submitted_at_date'] }}</p>
-                    </div>
-                </div>
-
-                <div class="success-print-card__footer">
-                    <span>Tahun Ajaran {{ $brand['year'] }}</span>
-                    <span>Simpan kartu ini sebagai bukti pendaftaran.</span>
-                </div>
-            </div>
-        </article>
-    </section>
 @endsection

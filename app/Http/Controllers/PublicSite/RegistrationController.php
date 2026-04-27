@@ -120,4 +120,19 @@ class RegistrationController extends Controller
             'registration' => $registration,
         ]);
     }
+
+    public function print(string $registrationNumber, Request $request, DemoSpmbRepository $repository)
+    {
+        $latestRegistration = $request->session()->get('latest_registration');
+        $registration = $latestRegistration && $latestRegistration['registration_number'] === $registrationNumber
+            ? $latestRegistration
+            : $repository->findRegistration($registrationNumber);
+
+        abort_if($registration === null, 404);
+
+        return view('public.print-card', [
+            'brand' => $repository->branding(),
+            'registration' => $registration,
+        ]);
+    }
 }
