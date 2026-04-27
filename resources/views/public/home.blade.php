@@ -51,16 +51,16 @@
             </dl>
         </div>
 
-        <div class="section-shell border-t-4 border-t-[#103b73] p-5 sm:p-8 text-slate-900">
+        <div class="dark-panel rounded-[1.8rem] border border-slate-900/10 p-5 sm:p-8 text-white">
             <div class="flex items-start sm:items-center justify-between gap-4 flex-col sm:flex-row">
                 <div>
-                    <p class="inline-flex items-center gap-2 text-[10px] sm:text-xs font-bold uppercase tracking-widest text-[#0b5cab]">
-                        <x-heroicon-o-document-text class="h-4 w-4" />
+                    <p class="inline-flex items-center gap-2 text-[10px] sm:text-xs font-bold uppercase tracking-widest text-sky-200">
+                        <x-heroicon-o-document-text class="h-4 w-4 text-teal-300" />
                         <span>Ringkasan Pendaftar</span>
                     </p>
-                    <h2 class="mt-2 font-display text-2xl sm:text-3xl font-bold text-[#10233d]">Pendaftar terbaru</h2>
+                    <h2 class="mt-2 font-display text-2xl sm:text-3xl font-bold text-white">Pendaftar terbaru</h2>
                 </div>
-                <a href="{{ route('admin.login') }}" class="btn-hero-secondary px-4 py-2 text-[10px] sm:text-xs font-bold uppercase tracking-widest">
+                <a href="{{ route('admin.login') }}" class="inline-flex items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/8 px-4 py-2 text-[10px] sm:text-xs font-bold uppercase tracking-widest text-white transition hover:bg-white/14">
                     <x-heroicon-o-lock-closed class="h-4 w-4" />
                     <span>Admin</span>
                 </a>
@@ -68,20 +68,20 @@
 
             <div class="mt-6 sm:mt-8 grid gap-3 sm:gap-4">
                 @forelse ($recentRegistrations as $registration)
-                    <div class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+                    <div class="rounded-2xl border border-white/10 bg-white/8 px-4 py-4 backdrop-blur-sm">
                         <div class="flex flex-wrap items-center justify-between gap-3">
                             <div>
-                                <p class="text-sm font-semibold text-slate-900">{{ $registration['full_name'] }}</p>
-                                <p class="mt-1 text-xs uppercase tracking-[0.24em] text-slate-500">{{ $registration['registration_number'] }}</p>
+                                <p class="text-sm font-semibold text-white">{{ $registration['full_name'] }}</p>
+                                <p class="mt-1 text-xs uppercase tracking-[0.24em] text-sky-100/70">{{ $registration['registration_number'] }}</p>
                             </div>
                             @include('partials.path-badge', ['code' => $registration['path_code']])
                         </div>
-                        <div class="mt-3 flex flex-wrap items-center gap-2 text-sm text-slate-500">
+                        <div class="mt-3 flex flex-wrap items-center gap-2 text-sm text-slate-200/80">
                             <span class="inline-flex items-center gap-2">
                                 <x-heroicon-o-building-office-2 class="h-4 w-4" />
                                 <span>{{ $registration['previous_school'] }}</span>
                             </span>
-                            <span class="h-1 w-1 rounded-full bg-slate-300"></span>
+                            <span class="h-1 w-1 rounded-full bg-white/30"></span>
                             <span class="inline-flex items-center gap-2">
                                 <x-heroicon-o-calendar-days class="h-4 w-4" />
                                 <span>{{ $registration['submitted_at_human'] }}</span>
@@ -89,7 +89,7 @@
                         </div>
                     </div>
                 @empty
-                    <div class="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-5 py-8 text-center text-sm text-slate-500">
+                    <div class="rounded-2xl border border-dashed border-white/20 bg-white/6 px-5 py-8 text-center text-sm text-slate-200/80">
                         Belum ada data pendaftar yang ditampilkan.
                     </div>
                 @endforelse
